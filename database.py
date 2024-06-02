@@ -95,3 +95,24 @@ Client.contracts = relationship("Contract", order_by=Contract.id, back_populates
 Contract.events = relationship("Event", order_by=Event.id, back_populates="contract")
 
 Base.metadata.create_all(bind=engine)
+
+
+def get_all_clients():
+    db = SessionLocal()
+    clients = db.query(Client).all()
+    db.close()
+    return clients
+
+
+def get_all_contracts():
+    db = SessionLocal()
+    contracts = db.query(Contract).all()
+    db.close()
+    return contracts
+
+
+def get_all_events():
+    db = SessionLocal()
+    events = db.query(Event).all()
+    db.close()
+    return events
