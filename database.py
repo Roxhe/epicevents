@@ -1,12 +1,55 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from passlib.context import CryptContext
 
 DATABASE_URL = "postgresql://crm_user:password@localhost/crm_db"
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"options": "-csearch_path=public"})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+role_permissions = Table('role_permissions', Base.metadata,
+    Column('role_id', Integer, ForeignKey('roles.id')),
+    Column('permission_id', Integer, ForeignKey('permissions.id'))
+)
+
+
+class Role(Base):
+    __tablename__ = 'roles'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(String)
+    permissions = relationship('Permission', secondary=role_permissions, back_populates='roles')
+
+
+class Permission(Base):
+    __tablename__ = 'permissions'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(String)
+    roles = relationship('Role', secondary=role_permissions, back_populates='permissions')
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, index=True)
+    employee_number = Column(String, unique=True, index=True)
+    full_name = Column(String)
+    email = Column(String, unique=True, index=True)
+    department = Column(String)
+    hashed_password = Column(String)
+    role_id = Column(Integer, ForeignKey('roles.id'))
+    role = relationship("Role")
+
+    def verify_password(self, password: str) -> bool:
+        return pwd_context.verify(password, self.hashed_password)
+
+    def set_password(self, password: str):
+        self.hashed_password = pwd_context.hash(password)
 
 
 class Client(Base):
