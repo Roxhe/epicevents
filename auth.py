@@ -1,4 +1,30 @@
 from database import SessionLocal, User, Role, Permission
+import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+import datetime
+import os
+
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'OCP12SECRETKEY')
+
+
+def create_jwt_token(user_id: int):
+    expiration = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    payload = {
+        'user_id': user_id,
+        'exp': expiration
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+    return token
+
+
+def decode_jwt_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        return payload['user_id']
+    except ExpiredSignatureError:
+        raise ValueError("Token has expired")
+    except InvalidTokenError:
+        raise ValueError("Invalid token")
 
 
 def create_role(name: str, description: str):
@@ -66,7 +92,6 @@ def create_user(employee_number: str, full_name: str, email: str, department: st
     db.expunge(user)
     db.close()
 
-    print(f"User created with hashed password: {user.hashed_password}")  # Debug print
     return user
 
 
